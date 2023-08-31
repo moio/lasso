@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rancher/lasso/pkg/grapher"
 	"github.com/rancher/lasso/pkg/log"
 	"github.com/rancher/lasso/pkg/metrics"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,6 +45,7 @@ type Controller interface {
 	EnqueueKey(key string)
 	Informer() cache.SharedIndexInformer
 	Start(ctx context.Context, workers int) error
+	GroupVersionKind() schema.GroupVersionKind
 }
 
 type controller struct {
@@ -236,6 +238,7 @@ func (c *controller) EnqueueKey(key string) {
 	c.startLock.Lock()
 	defer c.startLock.Unlock()
 
+	grapher.Record(grapher.Event{Kind: "EnqueueKey", GVK: c.name, Key: key, StackTrace: grapher.StackTrace()})
 	if c.workqueue == nil {
 		c.startKeys = append(c.startKeys, startKey{key: key})
 	} else {
@@ -249,6 +252,7 @@ func (c *controller) Enqueue(namespace, name string) {
 	c.startLock.Lock()
 	defer c.startLock.Unlock()
 
+	grapher.Record(grapher.Event{Kind: "Enqueue", GVK: c.name, Key: key, StackTrace: grapher.StackTrace()})
 	if c.workqueue == nil {
 		c.startKeys = append(c.startKeys, startKey{key: key})
 	} else {
@@ -262,6 +266,7 @@ func (c *controller) EnqueueAfter(namespace, name string, duration time.Duration
 	c.startLock.Lock()
 	defer c.startLock.Unlock()
 
+	grapher.Record(grapher.Event{Kind: "EnqueueAfter", GVK: c.name, Key: key, StackTrace: grapher.StackTrace()})
 	if c.workqueue == nil {
 		c.startKeys = append(c.startKeys, startKey{key: key, after: duration})
 	} else {
@@ -283,6 +288,7 @@ func (c *controller) enqueue(obj interface{}) {
 		log.Errorf("%v", err)
 		return
 	}
+	grapher.Record(grapher.Event{Kind: "Informer enqueue", GVK: c.name, Key: key})
 	c.startLock.Lock()
 	if c.workqueue == nil {
 		c.startKeys = append(c.startKeys, startKey{key: key})

@@ -11,6 +11,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	client "github.com/rancher/lasso/pkg/client"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
 
@@ -85,6 +86,20 @@ func (m *MockSharedController) EnqueueKey(arg0 string) {
 func (mr *MockSharedControllerMockRecorder) EnqueueKey(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnqueueKey", reflect.TypeOf((*MockSharedController)(nil).EnqueueKey), arg0)
+}
+
+// GroupVersionKind mocks base method.
+func (m *MockSharedController) GroupVersionKind() schema.GroupVersionKind {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GroupVersionKind")
+	ret0, _ := ret[0].(schema.GroupVersionKind)
+	return ret0
+}
+
+// GroupVersionKind indicates an expected call of GroupVersionKind.
+func (mr *MockSharedControllerMockRecorder) GroupVersionKind() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GroupVersionKind", reflect.TypeOf((*MockSharedController)(nil).GroupVersionKind))
 }
 
 // Informer mocks base method.

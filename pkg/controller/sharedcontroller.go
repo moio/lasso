@@ -55,6 +55,10 @@ func (s *sharedController) EnqueueKey(key string) {
 	s.initController().EnqueueKey(key)
 }
 
+func (s *sharedController) GroupVersionKind() schema.GroupVersionKind {
+	return s.gvk
+}
+
 func (s *sharedController) Informer() cachetools.SharedIndexInformer {
 	return s.initController().Informer()
 }

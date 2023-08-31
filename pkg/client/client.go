@@ -8,8 +8,10 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/rancher/lasso/pkg/grapher"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +29,7 @@ type Client struct {
 	timeout    time.Duration
 	Namespaced bool
 	GVR        schema.GroupVersionResource
+	GVK        schema.GroupVersionKind
 	resource   string
 	prefix     []string
 	apiVersion string
@@ -84,6 +87,7 @@ func NewClient(gvr schema.GroupVersionResource, kind string, namespaced bool, cl
 		timeout:    defaultTimeout,
 		Namespaced: namespaced,
 		GVR:        gvr,
+		GVK:        gvr.GroupVersion().WithKind(kind),
 		prefix:     prefix,
 		resource:   gvr.Resource,
 	}
@@ -160,6 +164,17 @@ func (c *Client) Create(ctx context.Context, namespace string, obj, result runti
 	defer c.setKind(result)
 	ctx, cancel := c.setupCtx(ctx, 0)
 	defer cancel()
+	name := "unknown"
+	m, err := meta.Accessor(obj)
+	if err == nil {
+		name = m.GetName()
+	}
+	grapher.Record(grapher.Event{
+		Kind:       "Create",
+		GVK:        c.GVK.String(),
+		Key:        strings.TrimPrefix(namespace+"/"+name, "/"),
+		StackTrace: grapher.StackTrace(),
+	})
 	err = c.RESTClient.Post().
 		Prefix(c.prefix...).
 		NamespaceIfScoped(namespace, c.Namespaced).
@@ -179,6 +194,12 @@ func (c *Client) Update(ctx context.Context, namespace string, obj, result runti
 	if err != nil {
 		return err
 	}
+	grapher.Record(grapher.Event{
+		Kind:       "Update",
+		GVK:        c.GVK.String(),
+		Key:        strings.TrimPrefix(namespace+"/"+m.GetName(), "/"),
+		StackTrace: grapher.StackTrace(),
+	})
 	err = c.RESTClient.Put().
 		Prefix(c.prefix...).
 		NamespaceIfScoped(namespace, c.Namespaced).
@@ -199,6 +220,12 @@ func (c *Client) UpdateStatus(ctx context.Context, namespace string, obj, result
 	if err != nil {
 		return err
 	}
+	grapher.Record(grapher.Event{
+		Kind:       "UpdateStatus",
+		GVK:        c.GVK.String(),
+		Key:        strings.TrimPrefix(namespace+"/"+m.GetName(), "/"),
+		StackTrace: grapher.StackTrace(),
+	})
 	err = c.RESTClient.Put().
 		Prefix(c.prefix...).
 		NamespaceIfScoped(namespace, c.Namespaced).
@@ -215,6 +242,12 @@ func (c *Client) UpdateStatus(ctx context.Context, namespace string, obj, result
 func (c *Client) Delete(ctx context.Context, namespace, name string, opts metav1.DeleteOptions) error {
 	ctx, cancel := c.setupCtx(ctx, 0)
 	defer cancel()
+	grapher.Record(grapher.Event{
+		Kind:       "Delete",
+		GVK:        c.GVK.String(),
+		Key:        strings.TrimPrefix(namespace+"/"+name, "/"),
+		StackTrace: grapher.StackTrace(),
+	})
 	return c.RESTClient.Delete().
 		Prefix(c.prefix...).
 		NamespaceIfScoped(namespace, c.Namespaced).
@@ -232,6 +265,12 @@ func (c *Client) DeleteCollection(ctx context.Context, namespace string, opts me
 	if listOpts.TimeoutSeconds != nil {
 		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
+	grapher.Record(grapher.Event{
+		Kind:       "DeleteCollection",
+		GVK:        c.GVK.String(),
+		Key:        strings.TrimPrefix(namespace+"/collection", "/"),
+		StackTrace: grapher.StackTrace(),
+	})
 	return c.RESTClient.Delete().
 		Prefix(c.prefix...).
 		NamespaceIfScoped(namespace, c.Namespaced).
@@ -247,6 +286,12 @@ func (c *Client) Patch(ctx context.Context, namespace, name string, pt types.Pat
 	defer c.setKind(result)
 	ctx, cancel := c.setupCtx(ctx, 0)
 	defer cancel()
+	grapher.Record(grapher.Event{
+		Kind:       "Patch",
+		GVK:        c.GVK.String(),
+		Key:        strings.TrimPrefix(namespace+"/"+name, "/"),
+		StackTrace: grapher.StackTrace(),
+	})
 	err = c.RESTClient.Patch(pt).
 		Prefix(c.prefix...).
 		Namespace(namespace).

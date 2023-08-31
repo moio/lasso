@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -11,7 +12,7 @@ type errorController struct {
 	informer cache.SharedIndexInformer
 }
 
-func newErrorController() *errorController {
+func newErrorController() Controller {
 	return &errorController{
 		informer: cache.NewSharedIndexInformer(nil, nil, 0, cache.Indexers{}),
 	}
@@ -24,6 +25,10 @@ func (n *errorController) EnqueueAfter(namespace, name string, delay time.Durati
 }
 
 func (n *errorController) EnqueueKey(key string) {
+}
+
+func (n *errorController) GroupVersionKind() schema.GroupVersionKind {
+	return schema.GroupVersionKind{}
 }
 
 func (n *errorController) Informer() cache.SharedIndexInformer {
