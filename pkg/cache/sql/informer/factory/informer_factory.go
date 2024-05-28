@@ -5,14 +5,14 @@ package factory
 
 import (
 	"fmt"
-	"github.com/rancher/lasso/pkg/cache/sql/informer"
 	"os"
 	"sync"
+
+	"github.com/rancher/lasso/pkg/cache/sql/informer"
 
 	"github.com/rancher/lasso/pkg/cache/sql/attachdriver"
 	db2 "github.com/rancher/lasso/pkg/cache/sql/db"
 	"github.com/rancher/lasso/pkg/cache/sql/encryption"
-	sqlStore "github.com/rancher/lasso/pkg/cache/sql/store"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -23,7 +23,7 @@ import (
 type CacheFactory struct {
 	informerCreateLock sync.Mutex
 	wg                 wait.Group
-	dbClient           DBClient
+	dbClient           db2.DBClient
 	stopCh             chan struct{}
 	encryptAll         bool
 
@@ -32,20 +32,10 @@ type CacheFactory struct {
 	cache map[schema.GroupVersionKind]*informer.Informer
 }
 
-type newInformer func(client dynamic.ResourceInterface, fields [][]string, gvk schema.GroupVersionKind, db sqlStore.DBClient, shouldEncrypt bool, namespace bool) (*informer.Informer, error)
-
-type DBClient interface {
-	informer.DBClient
-	sqlStore.DBClient
-	connector
-}
+type newInformer func(client dynamic.ResourceInterface, fields [][]string, gvk schema.GroupVersionKind, db db2.DBClient, shouldEncrypt bool, namespace bool) (*informer.Informer, error)
 
 type Cache struct {
 	informer.ByOptionsLister
-}
-
-type connector interface {
-	NewConnection() error
 }
 
 var defaultEncryptedResourceTypes = map[schema.GroupVersionKind]struct{}{

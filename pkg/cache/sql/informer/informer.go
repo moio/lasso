@@ -8,6 +8,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/rancher/lasso/pkg/cache/sql/db"
 	"github.com/rancher/lasso/pkg/cache/sql/partition"
 	sqlStore "github.com/rancher/lasso/pkg/cache/sql/store"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +32,7 @@ type ByOptionsLister interface {
 
 // NewInformer returns a new SQLite-backed Informer for the type specified by schema in unstructured.Unstructured form
 // using the specified client
-func NewInformer(client dynamic.ResourceInterface, fields [][]string, gvk schema.GroupVersionKind, db sqlStore.DBClient, shouldEncrypt bool, namespaced bool) (*Informer, error) {
+func NewInformer(client dynamic.ResourceInterface, fields [][]string, gvk schema.GroupVersionKind, db db.DBClient, shouldEncrypt bool, namespaced bool) (*Informer, error) {
 	listWatcher := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 			a, err := client.List(context.TODO(), options)

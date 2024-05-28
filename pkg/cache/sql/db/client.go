@@ -37,6 +37,19 @@ type Client struct {
 	decryptor Decryptor
 }
 
+type DBClient interface {
+	Begin() (TXClient, error)
+	Prepare(stmt string) *sql.Stmt
+	QueryForRows(ctx context.Context, stmt transaction.Stmt, params ...any) (*sql.Rows, error)
+	ReadObjects(rows Rows, typ reflect.Type, shouldDecrypt bool) ([]any, error)
+	ReadStrings(rows Rows) ([]string, error)
+	CloseStmt(closable Closable) error
+
+	Upsert(tx TXClient, stmt *sql.Stmt, key string, obj any, shouldEncrypt bool) error
+
+	NewConnection() error
+}
+
 // Connection represents a connection pool
 type Connection interface {
 	Begin() (*sql.Tx, error)
