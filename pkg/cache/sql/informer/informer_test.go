@@ -15,7 +15,7 @@ import (
 
 //go:generate mockgen --build_flags=--mod=mod -package informer -destination ./informer_mocks_test.go github.com/rancher/lasso/pkg/cache/sql/informer ByOptionsLister
 //go:generate mockgen --build_flags=--mod=mod -package informer -destination ./dynamic_mocks_test.go k8s.io/client-go/dynamic ResourceInterface
-//go:generate mockgen --build_flags=--mod=mod -package informer -destination ./store_mocks_test.go github.com/rancher/lasso/pkg/cache/sql/store DBClient
+//go:generate mockgen --build_flags=--mod=mod -package informer -destination ./db_mocks_test.go github.com/rancher/lasso/pkg/cache/sql/db DBClient,TXClient,Rows
 
 func TestNewInformer(t *testing.T) {
 	type testCase struct {
