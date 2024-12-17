@@ -79,9 +79,12 @@ func TestAdd(t *testing.T) {
 		store := SetupStore(t, c, shouldEncrypt)
 		c.EXPECT().BeginTx(gomock.Any(), true).Return(txC, nil)
 		c.EXPECT().Upsert(txC, store.upsertStmt, "something", testObject, store.shouldEncrypt).Return(nil)
+		e := fmt.Errorf("error")
 		store.afterUpsert = append(store.afterUpsert, func(key string, object any, txC db.TXClient) error {
-			return fmt.Errorf("error")
+			return e
 		})
+		c.EXPECT().RollbackTx(txC, e).Return(e)
+
 		err := store.Add(testObject)
 		assert.NotNil(t, err)
 		// dbclient beginerr
@@ -102,6 +105,7 @@ func TestAdd(t *testing.T) {
 		store := SetupStore(t, c, shouldEncrypt)
 		c.EXPECT().BeginTx(gomock.Any(), true).Return(txC, nil)
 		c.EXPECT().Upsert(txC, store.upsertStmt, "something", testObject, store.shouldEncrypt).Return(fmt.Errorf("failed"))
+		c.EXPECT().RollbackTx(txC, gomock.Any())
 		err := store.Add(testObject)
 		assert.NotNil(t, err)
 	}})
@@ -111,6 +115,7 @@ func TestAdd(t *testing.T) {
 		store := SetupStore(t, c, shouldEncrypt)
 		c.EXPECT().BeginTx(gomock.Any(), true).Return(txC, nil)
 		c.EXPECT().Upsert(txC, store.upsertStmt, "something", testObject, store.shouldEncrypt).Return(fmt.Errorf("failed"))
+		c.EXPECT().RollbackTx(txC, gomock.Any())
 		err := store.Add(testObject)
 		assert.NotNil(t, err)
 	}})
@@ -181,9 +186,12 @@ func TestUpdate(t *testing.T) {
 		c.EXPECT().BeginTx(gomock.Any(), true).Return(txC, nil)
 		c.EXPECT().Upsert(txC, store.upsertStmt, "something", testObject, store.shouldEncrypt).Return(nil)
 
+		e := fmt.Errorf("error")
 		store.afterUpsert = append(store.afterUpsert, func(key string, object any, txC db.TXClient) error {
 			return fmt.Errorf("error")
 		})
+		c.EXPECT().RollbackTx(txC, e).Return(e)
+
 		err := store.Update(testObject)
 		assert.NotNil(t, err)
 	},
@@ -195,6 +203,7 @@ func TestUpdate(t *testing.T) {
 
 		store := SetupStore(t, c, shouldEncrypt)
 		err := store.Update(testObject)
+
 		assert.NotNil(t, err)
 	}})
 
@@ -203,6 +212,7 @@ func TestUpdate(t *testing.T) {
 		store := SetupStore(t, c, shouldEncrypt)
 		c.EXPECT().BeginTx(gomock.Any(), true).Return(txC, nil)
 		c.EXPECT().Upsert(txC, store.upsertStmt, "something", testObject, store.shouldEncrypt).Return(fmt.Errorf("failed"))
+		c.EXPECT().RollbackTx(txC, gomock.Any())
 		err := store.Update(testObject)
 		assert.NotNil(t, err)
 	}})
@@ -212,6 +222,7 @@ func TestUpdate(t *testing.T) {
 		store := SetupStore(t, c, shouldEncrypt)
 		c.EXPECT().BeginTx(gomock.Any(), true).Return(txC, nil)
 		c.EXPECT().Upsert(txC, store.upsertStmt, "something", testObject, store.shouldEncrypt).Return(fmt.Errorf("failed"))
+		c.EXPECT().RollbackTx(txC, gomock.Any())
 		err := store.Update(testObject)
 		assert.NotNil(t, err)
 	}})
@@ -273,6 +284,7 @@ func TestDelete(t *testing.T) {
 		c.EXPECT().BeginTx(gomock.Any(), true).Return(txC, nil)
 		txC.EXPECT().Stmt(store.deleteStmt).Return(store.deleteStmt)
 		txC.EXPECT().StmtExec(store.deleteStmt, testObject.Id).Return(fmt.Errorf("error"))
+		c.EXPECT().RollbackTx(txC, gomock.Any())
 		// deleteStmt here will be an empty string since Prepare mock returns an empty *sql.Stmt
 		err := store.Delete(testObject)
 		assert.NotNil(t, err)
@@ -569,7 +581,9 @@ func TestReplace(t *testing.T) {
 		c.EXPECT().QueryForRows(context.TODO(), store.listKeysStmt).Return(r, nil)
 		c.EXPECT().ReadStrings(r).Return([]string{testObject.Id}, nil)
 		txC.EXPECT().Stmt(store.deleteStmt).Return(store.deleteStmt)
-		txC.EXPECT().StmtExec(store.deleteStmt, testObject.Id).Return(fmt.Errorf("error"))
+		e := fmt.Errorf("error")
+		txC.EXPECT().StmtExec(store.deleteStmt, testObject.Id).Return(e)
+		c.EXPECT().RollbackTx(txC, e).Return(e)
 		err := store.Replace([]any{testObject}, testObject.Id)
 		assert.NotNil(t, err)
 	},
@@ -584,7 +598,9 @@ func TestReplace(t *testing.T) {
 		c.EXPECT().ReadStrings(r).Return([]string{testObject.Id}, nil)
 		txC.EXPECT().Stmt(store.deleteStmt).Return(store.deleteStmt)
 		txC.EXPECT().StmtExec(store.deleteStmt, testObject.Id).Return(nil)
-		c.EXPECT().Upsert(txC, store.upsertStmt, testObject.Id, testObject, store.shouldEncrypt).Return(fmt.Errorf("error"))
+		e := fmt.Errorf("error")
+		c.EXPECT().Upsert(txC, store.upsertStmt, testObject.Id, testObject, store.shouldEncrypt).Return(e)
+		c.EXPECT().RollbackTx(txC, e).Return(e)
 		err := store.Replace([]any{testObject}, testObject.Id)
 		assert.NotNil(t, err)
 	},
